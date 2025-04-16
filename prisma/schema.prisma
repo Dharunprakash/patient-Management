@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./database.db"
+}
+
+enum Gender {
+  MALE
+  Female
+}
+
+model Patient {
+  id               Int      @id @default(autoincrement())
+  name             String
+  date             DateTime @default(now())
+  placeOfResidence String?
+  referencePerson  String?
+  age              Int
+  gender           Gender
+  natureOfWork     String?
+  height           Float?
+  weight           Float?
+  bmi              Float?
+  sleepPatterns    String?
+  diet             String?
+  diseases          Disease[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Disease {
+  id                Int        @id @default(autoincrement())
+  patientId         Int
+  patient           Patient    @relation(fields: [patientId], references: [id])
+  nameOfDisease     String?
+  chiefComplaint    String?
+  timePeriod        String?
+  onsetOfDisease    String?
+  symptoms          String  ?   // Store as comma-separated values
+  locationOfPain    String?
+  severity          String?
+  recurrenceTiming  String?
+  aggravatingFactors String  ?  // Store as comma-separated values
+  medicalReports    String?
+  typeOfDisease     String?
+  anatomicalReference String?
+  physiologicalReference String?
+  psychologicalReference String?
+  medicalHistory    MedicalHistory?
+  therapies         Therapy[]
+}
+
+model MedicalHistory {
+  id                 Int       @id @default(autoincrement())
+  diseaseId          Int       @unique
+  disease            Disease   @relation(fields: [diseaseId], references: [id])
+  childhoodIllness   String?
+  psychiatricIllness String?
+  occupationalInfluences String?
+  operationsOrSurgeries String?
+  hereditary         Boolean   @default(false)
+  medicalReports     String?
+}
+
+model Therapy {
+  id                 Int       @id @default(autoincrement())
+  diseaseId          Int
+  disease            Disease   @relation(fields: [diseaseId], references: [id])
+  name               String
+  fitnessOrTherapy   String
+  therapyTools       TherapyTools?
+  homeRemedies       String?
+  dietReference      String?
+  lifestyleModifications String?
+  secondaryTherapy   String?
+  aggravatingPoses   String?
+  relievingPoses     String?
+  flexibilityLevel   String?
+  nerveStiffness     String?
+  muscleStiffness    String?
+  avoidablePoses     String?
+  therapyPoses       String?
+  sideEffects        String?
+  progressiveReport  String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+model TherapyTools {
+  id                 Int       @id @default(autoincrement())
+  therapyId          Int       @unique
+  therapy            Therapy   @relation(fields: [therapyId], references: [id])
+  yoga               Yoga?
+  pranayama          Pranayama?
+  mudras             Mudras?
+  mantras            String?
+  meditationTypes    String?
+  bandhas            String?
+  breathingExercises BreathingExercises?
+}
+model Yoga {
+  id                Int          @id @default(autoincrement())
+  therapyToolsId    Int          @unique
+  therapyTools      TherapyTools @relation(fields: [therapyToolsId], references: [id])
+  poses             String?
+  repeatingTimingsPerDay Int?
+}
+
+model Pranayama {
+  id                Int          @id @default(autoincrement())
+  therapyToolsId    Int          @unique
+  therapyTools      TherapyTools @relation(fields: [therapyToolsId], references: [id])
+  techniques        String?
+  repeatingTimingsPerDay Int?
+}
+
+model Mudras {
+  id                Int          @id @default(autoincrement())
+  therapyToolsId    Int          @unique
+  therapyTools      TherapyTools @relation(fields: [therapyToolsId], references: [id])
+  mudraNames        String?
+  repeatingTimingsPerDay Int?
+}
+
+model BreathingExercises {
+  id                Int          @id @default(autoincrement())
+  therapyToolsId    Int          @unique
+  therapyTools      TherapyTools @relation(fields: [therapyToolsId], references: [id])
+  exercises         String?
+  repeatingTimingsPerDay Int?
+}

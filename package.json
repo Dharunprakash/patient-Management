@@ -1,0 +1,24 @@
+{
+  "name": "patient",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron .",
+    "dev": "cross-env NODE_ENV=development npx electronmon --trace-warnings ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@prisma/client": "^6.6.0",
+    "electron": "^35.1.5",
+    "electronmon": "^2.0.3",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "prisma": "^6.6.0"
+  }
+}
