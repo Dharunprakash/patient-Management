@@ -47,9 +47,13 @@ ipcMain.handle("get-patient", async (_, id) => {
 
 // Update a patient
 ipcMain.handle("update-patient", async (_, { id, data }) => {
+    // Extract diseases from data if present
+    const { diseases, ...patientData } = data;
+    
+    // Update only the patient data
     return await prisma.patient.update({
         where: { id: parseInt(id) },
-        data
+        data: patientData
     });
 });
 
@@ -204,11 +208,14 @@ ipcMain.handle("get-therapy", async (_, id) => {
 
 // Update a therapy
 ipcMain.handle("update-therapy", async (_, { id, data }) => {
+    // Extract fields that should not be directly included in the update
+    const { id: therapyId, therapyTools, createdAt, updatedAt, ...updateData } = data;
+    
     return await prisma.therapy.update({
         where: { id: parseInt(id) },
         data: {
-            ...data,
-            diseaseId: parseInt(data.diseaseId)
+            ...updateData,
+            diseaseId: parseInt(updateData.diseaseId)
         }
     });
 });
@@ -224,20 +231,77 @@ ipcMain.handle("delete-therapy", async (_, id) => {
 
 // Create therapy tools
 ipcMain.handle("create-therapy-tools", async (_, data) => {
-    return await prisma.therapyTools.create({
+    // Extract nested objects that need to be created separately
+    const { yoga, pranayama, mudras, breathingExercises, ...therapyToolsData } = data;
+    
+    // Create the therapy tools first
+    const createdTherapyTools = await prisma.therapyTools.create({
         data: {
-            therapyId: parseInt(data.therapyId),
-            mantras: data.mantras,
-            meditationTypes: data.meditationTypes,
-            bandhas: data.bandhas
-        },
-        include: {
-            yoga: true,
-            pranayama: true,
-            mudras: true,
-            breathingExercises: true
+            therapyId: parseInt(therapyToolsData.therapyId),
+            mantras: therapyToolsData.mantras,
+            meditationTypes: therapyToolsData.meditationTypes,
+            bandhas: therapyToolsData.bandhas
         }
     });
+    
+    // Now we have the therapyTools ID, we can create the nested related records
+    let createdYoga = null;
+    let createdPranayama = null;
+    let createdMudras = null;
+    let createdBreathingExercises = null;
+    
+    // Create yoga if provided
+    if (yoga && (yoga.poses || yoga.repeatingTimingsPerDay)) {
+        createdYoga = await prisma.yoga.create({
+            data: {
+                therapyToolsId: createdTherapyTools.id,
+                poses: yoga.poses || "",
+                repeatingTimingsPerDay: yoga.repeatingTimingsPerDay ? parseInt(yoga.repeatingTimingsPerDay) : null
+            }
+        });
+    }
+    
+    // Create pranayama if provided
+    if (pranayama && (pranayama.techniques || pranayama.repeatingTimingsPerDay)) {
+        createdPranayama = await prisma.pranayama.create({
+            data: {
+                therapyToolsId: createdTherapyTools.id,
+                techniques: pranayama.techniques || "",
+                repeatingTimingsPerDay: pranayama.repeatingTimingsPerDay ? parseInt(pranayama.repeatingTimingsPerDay) : null
+            }
+        });
+    }
+    
+    // Create mudras if provided
+    if (mudras && (mudras.mudraNames || mudras.repeatingTimingsPerDay)) {
+        createdMudras = await prisma.mudras.create({
+            data: {
+                therapyToolsId: createdTherapyTools.id,
+                mudraNames: mudras.mudraNames || "",
+                repeatingTimingsPerDay: mudras.repeatingTimingsPerDay ? parseInt(mudras.repeatingTimingsPerDay) : null
+            }
+        });
+    }
+    
+    // Create breathing exercises if provided
+    if (breathingExercises && (breathingExercises.exercises || breathingExercises.repeatingTimingsPerDay)) {
+        createdBreathingExercises = await prisma.breathingExercises.create({
+            data: {
+                therapyToolsId: createdTherapyTools.id,
+                exercises: breathingExercises.exercises || "",
+                repeatingTimingsPerDay: breathingExercises.repeatingTimingsPerDay ? parseInt(breathingExercises.repeatingTimingsPerDay) : null
+            }
+        });
+    }
+    
+    // Return the therapy tools with all the created nested objects
+    return {
+        ...createdTherapyTools,
+        yoga: createdYoga,
+        pranayama: createdPranayama,
+        mudras: createdMudras,
+        breathingExercises: createdBreathingExercises
+    };
 });
 
 // Get therapy tools by ID
@@ -268,20 +332,129 @@ ipcMain.handle("get-therapy-tools-by-therapy", async (_, therapyId) => {
 
 // Update therapy tools
 ipcMain.handle("update-therapy-tools", async (_, { id, data }) => {
-    return await prisma.therapyTools.update({
+    // Extract nested objects and fields that shouldn't be in the update
+    const { 
+        id: toolId, 
+        yoga, 
+        pranayama, 
+        mudras, 
+        breathingExercises,
+        therapyId,
+        ...updateData 
+    } = data;
+    
+    // Update the main therapy tools record
+    const updatedTherapyTools = await prisma.therapyTools.update({
         where: { id: parseInt(id) },
-        data: {
-            mantras: data.mantras,
-            meditationTypes: data.meditationTypes,
-            bandhas: data.bandhas
-        },
-        include: {
-            yoga: true,
-            pranayama: true,
-            mudras: true,
-            breathingExercises: true
-        }
+        data: updateData
     });
+    
+    // Now update or create the nested related records
+    let updatedYoga = null;
+    let updatedPranayama = null;
+    let updatedMudras = null;
+    let updatedBreathingExercises = null;
+    
+    // Handle yoga
+    if (yoga) {
+        if (yoga.id) {
+            // Update existing yoga
+            updatedYoga = await prisma.yoga.update({
+                where: { id: parseInt(yoga.id) },
+                data: {
+                    poses: yoga.poses,
+                    repeatingTimingsPerDay: yoga.repeatingTimingsPerDay ? parseInt(yoga.repeatingTimingsPerDay) : null
+                }
+            });
+        } else if (yoga.poses || yoga.repeatingTimingsPerDay) {
+            // Create new yoga
+            updatedYoga = await prisma.yoga.create({
+                data: {
+                    therapyToolsId: updatedTherapyTools.id,
+                    poses: yoga.poses || "",
+                    repeatingTimingsPerDay: yoga.repeatingTimingsPerDay ? parseInt(yoga.repeatingTimingsPerDay) : null
+                }
+            });
+        }
+    }
+    
+    // Handle pranayama
+    if (pranayama) {
+        if (pranayama.id) {
+            // Update existing pranayama
+            updatedPranayama = await prisma.pranayama.update({
+                where: { id: parseInt(pranayama.id) },
+                data: {
+                    techniques: pranayama.techniques,
+                    repeatingTimingsPerDay: pranayama.repeatingTimingsPerDay ? parseInt(pranayama.repeatingTimingsPerDay) : null
+                }
+            });
+        } else if (pranayama.techniques || pranayama.repeatingTimingsPerDay) {
+            // Create new pranayama
+            updatedPranayama = await prisma.pranayama.create({
+                data: {
+                    therapyToolsId: updatedTherapyTools.id,
+                    techniques: pranayama.techniques || "",
+                    repeatingTimingsPerDay: pranayama.repeatingTimingsPerDay ? parseInt(pranayama.repeatingTimingsPerDay) : null
+                }
+            });
+        }
+    }
+    
+    // Handle mudras
+    if (mudras) {
+        if (mudras.id) {
+            // Update existing mudras
+            updatedMudras = await prisma.mudras.update({
+                where: { id: parseInt(mudras.id) },
+                data: {
+                    mudraNames: mudras.mudraNames,
+                    repeatingTimingsPerDay: mudras.repeatingTimingsPerDay ? parseInt(mudras.repeatingTimingsPerDay) : null
+                }
+            });
+        } else if (mudras.mudraNames || mudras.repeatingTimingsPerDay) {
+            // Create new mudras
+            updatedMudras = await prisma.mudras.create({
+                data: {
+                    therapyToolsId: updatedTherapyTools.id,
+                    mudraNames: mudras.mudraNames || "",
+                    repeatingTimingsPerDay: mudras.repeatingTimingsPerDay ? parseInt(mudras.repeatingTimingsPerDay) : null
+                }
+            });
+        }
+    }
+    
+    // Handle breathing exercises
+    if (breathingExercises) {
+        if (breathingExercises.id) {
+            // Update existing breathing exercises
+            updatedBreathingExercises = await prisma.breathingExercises.update({
+                where: { id: parseInt(breathingExercises.id) },
+                data: {
+                    exercises: breathingExercises.exercises,
+                    repeatingTimingsPerDay: breathingExercises.repeatingTimingsPerDay ? parseInt(breathingExercises.repeatingTimingsPerDay) : null
+                }
+            });
+        } else if (breathingExercises.exercises || breathingExercises.repeatingTimingsPerDay) {
+            // Create new breathing exercises
+            updatedBreathingExercises = await prisma.breathingExercises.create({
+                data: {
+                    therapyToolsId: updatedTherapyTools.id,
+                    exercises: breathingExercises.exercises || "",
+                    repeatingTimingsPerDay: breathingExercises.repeatingTimingsPerDay ? parseInt(breathingExercises.repeatingTimingsPerDay) : null
+                }
+            });
+        }
+    }
+    
+    // Return the updated therapy tools with all the updated nested objects
+    return {
+        ...updatedTherapyTools,
+        yoga: updatedYoga,
+        pranayama: updatedPranayama,
+        mudras: updatedMudras,
+        breathingExercises: updatedBreathingExercises
+    };
 });
 
 // Delete therapy tools

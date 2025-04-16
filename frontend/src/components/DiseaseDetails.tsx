@@ -118,81 +118,14 @@ const DiseaseDetails = ({ id, onBack, onEdit }: DiseaseDetailsProps) => {
       let savedTherapyTools;
 
       if (therapyTools.id) {
+        // Update existing therapy tools
         savedTherapyTools = await ipcRenderer.invoke("update-therapy-tools", {
           id: therapyTools.id,
           data: therapyTools
         });
       } else {
+        // Create new therapy tools
         savedTherapyTools = await ipcRenderer.invoke("create-therapy-tools", therapyTools);
-      }
-
-      // Update the yoga, pranayama, mudras, and breathing exercises if they exist
-      if (savedTherapyTools.yoga) {
-        if (savedTherapyTools.yoga.id) {
-          await ipcRenderer.invoke("update-yoga", {
-            id: savedTherapyTools.yoga.id,
-            data: {
-              ...therapyTools.yoga,
-              therapyToolsId: savedTherapyTools.id
-            }
-          });
-        } else if (therapyTools.yoga) {
-          await ipcRenderer.invoke("create-yoga", {
-            ...therapyTools.yoga,
-            therapyToolsId: savedTherapyTools.id
-          });
-        }
-      }
-
-      if (savedTherapyTools.pranayama) {
-        if (savedTherapyTools.pranayama.id) {
-          await ipcRenderer.invoke("update-pranayama", {
-            id: savedTherapyTools.pranayama.id,
-            data: {
-              ...therapyTools.pranayama,
-              therapyToolsId: savedTherapyTools.id
-            }
-          });
-        } else if (therapyTools.pranayama) {
-          await ipcRenderer.invoke("create-pranayama", {
-            ...therapyTools.pranayama,
-            therapyToolsId: savedTherapyTools.id
-          });
-        }
-      }
-
-      if (savedTherapyTools.mudras) {
-        if (savedTherapyTools.mudras.id) {
-          await ipcRenderer.invoke("update-mudras", {
-            id: savedTherapyTools.mudras.id,
-            data: {
-              ...therapyTools.mudras,
-              therapyToolsId: savedTherapyTools.id
-            }
-          });
-        } else if (therapyTools.mudras) {
-          await ipcRenderer.invoke("create-mudras", {
-            ...therapyTools.mudras,
-            therapyToolsId: savedTherapyTools.id
-          });
-        }
-      }
-
-      if (savedTherapyTools.breathingExercises) {
-        if (savedTherapyTools.breathingExercises.id) {
-          await ipcRenderer.invoke("update-breathing-exercises", {
-            id: savedTherapyTools.breathingExercises.id,
-            data: {
-              ...therapyTools.breathingExercises,
-              therapyToolsId: savedTherapyTools.id
-            }
-          });
-        } else if (therapyTools.breathingExercises) {
-          await ipcRenderer.invoke("create-breathing-exercises", {
-            ...therapyTools.breathingExercises,
-            therapyToolsId: savedTherapyTools.id
-          });
-        }
       }
 
       // Update local state
