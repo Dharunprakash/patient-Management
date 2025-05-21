@@ -47,6 +47,17 @@ export interface MedicalHistory {
   operationsOrSurgeries?: string;
   hereditary: boolean;
   medicalReports?: string;
+  medicalReportFiles?: MedicalReport[];
+}
+
+export interface MedicalReport {
+  id?: number;
+  filePath: string;
+  diseaseId?: number | null;
+  medicalHistoryId?: number | null;
+  createdAt?: string;
+  fileName?: string;
+  fileType?: string;
 }
 
 export interface Therapy {

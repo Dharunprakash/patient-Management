@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { MedicalHistory } from "../types";
+import { MedicalHistory, MedicalReport } from "../types";
+import MedicalReportFileUploader from "./MedicalReportFileUploader";
+import MedicalReportFileViewer from "./MedicalReportFileViewer";
 
 interface MedicalHistoryFormProps {
   initialValues?: MedicalHistory | null;
@@ -13,6 +15,8 @@ interface MedicalHistoryFormProps {
 const MedicalHistoryForm = ({ initialValues, diseaseId, onSave, onCancel }: MedicalHistoryFormProps) => {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploadedReports, setUploadedReports] = useState<MedicalReport[]>([]);
+  const [historyId, setHistoryId] = useState<number | undefined>(initialValues?.id);
 
   const emptyMedicalHistory: MedicalHistory = {
     childhoodIllness: "",
@@ -33,6 +37,17 @@ const MedicalHistoryForm = ({ initialValues, diseaseId, onSave, onCancel }: Medi
     medicalReports: Yup.string(),
   });
 
+  useEffect(() => {
+    // Fetch the uploaded reports if we have a history ID
+    if (initialValues?.id) {
+      setHistoryId(initialValues.id);
+    }
+  }, [initialValues]);
+
+  const handleFileUploaded = (report: MedicalReport) => {
+    setUploadedReports(prev => [...prev, report]);
+  };
+
   const formik = useFormik({
     initialValues: initialValues || emptyMedicalHistory,
     validationSchema,
@@ -40,8 +55,12 @@ const MedicalHistoryForm = ({ initialValues, diseaseId, onSave, onCancel }: Medi
       try {
         setSaving(true);
         setError("");
+
+        // Remove medicalReports if it exists in values to prevent prisma error
+        const { medicalReports, ...medicalHistoryValues } = values;
+
         await onSave({
-          ...values,
+          ...medicalHistoryValues,
           id: initialValues?.id,
           diseaseId,
         });
@@ -55,95 +74,84 @@ const MedicalHistoryForm = ({ initialValues, diseaseId, onSave, onCancel }: Medi
   });
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold">
-          {initialValues ? "Edit Medical History" : "Add Medical History"}
-        </h2>
-        <p className="text-gray-500 text-sm mt-1">
-          Record important medical history related to this disease
-        </p>
-      </div>
+    <form onSubmit={formik.handleSubmit} className="bg-white rounded-lg shadow-md p-6">
+      <h2 className="text-lg font-medium text-gray-900 mb-4">
+        {initialValues?.id ? "Edit Medical History" : "Add Medical History"}
+      </h2>
 
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
+      {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
+
+      <div className="grid grid-cols-1 gap-6 mb-6">
+        <div>
+          <label htmlFor="childhoodIllness" className="block text-sm font-medium text-gray-700 mb-1">
+            Childhood Illness
+          </label>
+          <textarea
+            id="childhoodIllness"
+            name="childhoodIllness"
+            rows={3}
+            className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-300 rounded-md"
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            value={formik.values.childhoodIllness}
+          />
+          {formik.touched.childhoodIllness && formik.errors.childhoodIllness ? (
+            <div className="text-red-500 text-sm mt-1">{formik.errors.childhoodIllness}</div>
+          ) : null}
         </div>
-      )}
 
-      <form onSubmit={formik.handleSubmit} className="space-y-5">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="childhoodIllness" className="block text-sm font-medium text-gray-700 mb-1">
-              Childhood Illness
-            </label>
-            <textarea
-              id="childhoodIllness"
-              name="childhoodIllness"
-              rows={3}
-              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-300 rounded-md"
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              value={formik.values.childhoodIllness}
-            />
-            {formik.touched.childhoodIllness && formik.errors.childhoodIllness ? (
-              <div className="text-red-500 text-sm mt-1">{formik.errors.childhoodIllness}</div>
-            ) : null}
-          </div>
+        <div>
+          <label htmlFor="psychiatricIllness" className="block text-sm font-medium text-gray-700 mb-1">
+            Psychiatric Illness
+          </label>
+          <textarea
+            id="psychiatricIllness"
+            name="psychiatricIllness"
+            rows={3}
+            className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-300 rounded-md"
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            value={formik.values.psychiatricIllness}
+          />
+          {formik.touched.psychiatricIllness && formik.errors.psychiatricIllness ? (
+            <div className="text-red-500 text-sm mt-1">{formik.errors.psychiatricIllness}</div>
+          ) : null}
+        </div>
 
-          <div>
-            <label htmlFor="psychiatricIllness" className="block text-sm font-medium text-gray-700 mb-1">
-              Psychiatric Illness
-            </label>
-            <textarea
-              id="psychiatricIllness"
-              name="psychiatricIllness"
-              rows={3}
-              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-300 rounded-md"
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              value={formik.values.psychiatricIllness}
-            />
-            {formik.touched.psychiatricIllness && formik.errors.psychiatricIllness ? (
-              <div className="text-red-500 text-sm mt-1">{formik.errors.psychiatricIllness}</div>
-            ) : null}
-          </div>
+        <div>
+          <label htmlFor="occupationalInfluences" className="block text-sm font-medium text-gray-700 mb-1">
+            Occupational Influences
+          </label>
+          <textarea
+            id="occupationalInfluences"
+            name="occupationalInfluences"
+            rows={3}
+            className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-300 rounded-md"
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            value={formik.values.occupationalInfluences}
+          />
+          {formik.touched.occupationalInfluences && formik.errors.occupationalInfluences ? (
+            <div className="text-red-500 text-sm mt-1">{formik.errors.occupationalInfluences}</div>
+          ) : null}
+        </div>
 
-          <div>
-            <label htmlFor="occupationalInfluences" className="block text-sm font-medium text-gray-700 mb-1">
-              Occupational Influences
-            </label>
-            <textarea
-              id="occupationalInfluences"
-              name="occupationalInfluences"
-              rows={3}
-              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-300 rounded-md"
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              value={formik.values.occupationalInfluences}
-            />
-            {formik.touched.occupationalInfluences && formik.errors.occupationalInfluences ? (
-              <div className="text-red-500 text-sm mt-1">{formik.errors.occupationalInfluences}</div>
-            ) : null}
-          </div>
-
-          <div>
-            <label htmlFor="operationsOrSurgeries" className="block text-sm font-medium text-gray-700 mb-1">
-              Operations or Surgeries
-            </label>
-            <textarea
-              id="operationsOrSurgeries"
-              name="operationsOrSurgeries"
-              rows={3}
-              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-300 rounded-md"
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              value={formik.values.operationsOrSurgeries}
-            />
-            {formik.touched.operationsOrSurgeries && formik.errors.operationsOrSurgeries ? (
-              <div className="text-red-500 text-sm mt-1">{formik.errors.operationsOrSurgeries}</div>
-            ) : null}
-          </div>
+        <div>
+          <label htmlFor="operationsOrSurgeries" className="block text-sm font-medium text-gray-700 mb-1">
+            Operations or Surgeries
+          </label>
+          <textarea
+            id="operationsOrSurgeries"
+            name="operationsOrSurgeries"
+            rows={3}
+            className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-300 rounded-md"
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            value={formik.values.operationsOrSurgeries}
+          />
+          {formik.touched.operationsOrSurgeries && formik.errors.operationsOrSurgeries ? (
+            <div className="text-red-500 text-sm mt-1">{formik.errors.operationsOrSurgeries}</div>
+          ) : null}
         </div>
 
         <div className="flex items-center">
@@ -162,7 +170,7 @@ const MedicalHistoryForm = ({ initialValues, diseaseId, onSave, onCancel }: Medi
 
         <div>
           <label htmlFor="medicalReports" className="block text-sm font-medium text-gray-700 mb-1">
-            Medical Reports
+            Medical Reports Notes
           </label>
           <textarea
             id="medicalReports"
@@ -178,6 +186,26 @@ const MedicalHistoryForm = ({ initialValues, diseaseId, onSave, onCancel }: Medi
           ) : null}
         </div>
 
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Medical Report Files</h3>
+            {historyId ? (
+              <MedicalReportFileViewer medicalHistoryId={historyId} className="mb-3" />
+            ) : (
+              <p className="text-sm text-gray-500 mb-3">
+                Save this form to enable file uploads
+              </p>
+            )}
+
+            {historyId && (
+              <MedicalReportFileUploader
+                medicalHistoryId={historyId}
+                onFileUploaded={handleFileUploaded}
+              />
+            )}
+          </div>
+        </div>
+
         <div className="flex justify-end space-x-3 pt-4">
           <button
             type="button"
@@ -186,26 +214,17 @@ const MedicalHistoryForm = ({ initialValues, diseaseId, onSave, onCancel }: Medi
           >
             Cancel
           </button>
+
           <button
             type="submit"
             disabled={saving}
-            className="px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            className="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            {saving ? (
-              <span className="flex items-center">
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Saving...
-              </span>
-            ) : (
-              "Save Medical History"
-            )}
+            {saving ? "Saving..." : initialValues?.id ? "Update" : "Save"}
           </button>
         </div>
-      </form>
-    </div>
+      </div>
+    </form>
   );
 };
 

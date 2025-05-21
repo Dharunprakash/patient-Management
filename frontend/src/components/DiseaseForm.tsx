@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Formik, Form, Field, ErrorMessage, FieldArray } from "formik";
 import * as Yup from "yup";
-import { Disease } from "../types";
+import { Disease, MedicalReport } from "../types";
+import MedicalReportFileUploader from "./MedicalReportFileUploader";
+import MedicalReportFileViewer from "./MedicalReportFileViewer";
 
 interface DiseaseFormProps {
   initialValues?: Disease;
@@ -21,7 +23,6 @@ const emptyDisease: Disease = {
   severity: "",
   recurrenceTiming: "",
   aggravatingFactors: "",
-  medicalReports: "",
   typeOfDisease: "",
   anatomicalReference: "",
   physiologicalReference: "",
@@ -35,15 +36,31 @@ const validationSchema = Yup.object({
 
 const DiseaseForm = ({ initialValues, patientId, onSave, onCancel }: DiseaseFormProps) => {
   const [error, setError] = useState("");
+  const [diseaseId, setDiseaseId] = useState<number | undefined>(initialValues?.id);
+  const [uploadedReports, setUploadedReports] = useState<MedicalReport[]>([]);
   const isEditing = !!initialValues?.id;
 
   const defaultValues: Disease = initialValues
     ? { ...initialValues }
     : { ...emptyDisease, patientId };
 
+  useEffect(() => {
+    if (initialValues?.id) {
+      setDiseaseId(initialValues.id);
+    }
+  }, [initialValues]);
+
+  const handleFileUploaded = (report: MedicalReport) => {
+    setUploadedReports(prev => [...prev, report]);
+  };
+
   const handleSubmit = async (values: Disease) => {
     try {
-      await onSave(values);
+      // Remove medicalReports if it exists in values to prevent prisma error
+      const { medicalReports, ...diseaseValues } = values;
+
+      // Save the disease
+      await onSave(diseaseValues);
     } catch (err) {
       console.error("Error saving disease:", err);
       setError("Failed to save disease information");
@@ -253,17 +270,21 @@ const DiseaseForm = ({ initialValues, patientId, onSave, onCancel }: DiseaseForm
               </div>
             </div>
 
-            <div>
-              <label htmlFor="medicalReports" className="block text-sm font-medium text-gray-700 mb-1">
-                Medical Reports
-              </label>
-              <Field
-                as="textarea"
-                name="medicalReports"
-                id="medicalReports"
-                rows="3"
-                className="w-full p-2 border rounded-md"
-              />
+            <div className="border-t border-gray-200 pt-4">
+              <h3 className="text-lg font-medium mb-3">Medical Reports</h3>
+              {diseaseId ? (
+                <div className="space-y-4">
+                  <MedicalReportFileViewer diseaseId={diseaseId} className="mb-3" />
+                  <MedicalReportFileUploader
+                    diseaseId={diseaseId}
+                    onFileUploaded={handleFileUploaded}
+                  />
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  Save this form first to enable medical report uploads.
+                </p>
+              )}
             </div>
 
             <div className="flex justify-end space-x-4 pt-4">

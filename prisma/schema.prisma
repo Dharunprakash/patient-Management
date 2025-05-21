@@ -44,7 +44,7 @@ model Disease {
   severity          String?
   recurrenceTiming  String?
   aggravatingFactors String  ?  // Store as comma-separated values
-  medicalReports    String?
+  medicalReports    MedicalReport[]
   typeOfDisease     String?
   anatomicalReference String?
   physiologicalReference String?
@@ -62,9 +62,18 @@ model MedicalHistory {
   occupationalInfluences String?
   operationsOrSurgeries String?
   hereditary         Boolean   @default(false)
-  medicalReports     String?
+  medicalReports     MedicalReport[]
 }
 
+model MedicalReport {
+  id             Int      @id @default(autoincrement())
+  filePath       String   // Path or URL to PDF/image
+  diseaseId      Int?     // Optional relation to Disease
+  disease        Disease? @relation(fields: [diseaseId], references: [id])
+  medicalHistoryId Int?     // Optional relation to MedicalHistory
+  medicalHistory MedicalHistory? @relation(fields: [medicalHistoryId], references: [id])
+  createdAt      DateTime @default(now())
+}
 model Therapy {
   id                 Int       @id @default(autoincrement())
   diseaseId          Int
