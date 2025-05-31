@@ -26,12 +26,12 @@ const App = () => {
             >
               Patient List
             </Link>
-            <Link
+            {/* <Link
               to="/patients/new"
               className="block py-3 px-4 hover:bg-blue-700 transition duration-200"
             >
               Add New Patient
-            </Link>
+            </Link> */}
           </nav>
         </div>
 

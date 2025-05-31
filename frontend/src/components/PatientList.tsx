@@ -83,7 +83,7 @@ const PatientList = () => {
         <div className="text-center py-10 text-gray-500">
           No patients found. {searchTerm && "Try a different search term or "}
           <Link to="/patients/new" className="text-blue-500 hover:underline">
-            add a new patient
+            Add a new patient
           </Link>
           .
         </div>

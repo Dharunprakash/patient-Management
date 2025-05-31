@@ -30,7 +30,7 @@ function createWindow() {
     });
     win.setMenu(null);
     win.setResizable(false);
-    win.webContents.openDevTools();
+    // win.webContents.openDevTools();
     const mode = process.env.NODE_ENV;
     const startURL = mode === 'development' ? "http://localhost:5173/" : `file://${path.join(__dirname, 'app/dist/index.html')}`;
     win.loadURL(startURL);
